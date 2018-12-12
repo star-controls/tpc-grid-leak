@@ -19,8 +19,12 @@ class TPC():
         self.wboard, self.wch = 0, 0
         self.ip = ip
         self.dictWiener, self.dictTPC = {}, {}
+        file = open("file.txt","a")
+        file.write("TPC sector \t TPC channel \t WIENER board \t WIENER channel \n")
         for self.i in xrange(1,25):
             for self.j in xrange(2):
+                a = '{0} \t\t {1} \t\t {2} \t\t {3} \n'.format(self.i, self.j, self.wboard, self.wch)
+                file.write(a)
                 self.chlist.append(Channel(self.i, self.j, self.wboard, self.wch, self.ip))
                 self.dictWiener[(self.wboard, self.wch)] = self.chlist[-1]
                 self.dictTPC[(self.i, self.j)] = self.chlist[-1]
@@ -28,6 +32,7 @@ class TPC():
                 if(self.wch>15):
                     self.wboard+=1
                     self.wch=0
+        file.close()
 
     def getValue(self, cm):
             p = subprocess.Popen(cm.split(), stdout=subprocess.PIPE)
