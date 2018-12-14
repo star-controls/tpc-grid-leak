@@ -19,17 +19,10 @@ class TPC():
         self.wboard, self.wch = 0, 0
         self.ip = ip
         self.dictWiener, self.dictTPC = {}, {}
-<<<<<<< HEAD
         file = open("file.txt","w")
         file.write("TPC sector \t TPC channel \t WIENER board \t WIENER channel \n")
         for self.i in xrange(1,25): # sector
             for self.j in xrange(2): # channel
-=======
-        file = open("file.txt","a")
-        file.write("TPC sector \t TPC channel \t WIENER board \t WIENER channel \n")
-        for self.i in xrange(1,25):
-            for self.j in xrange(2):
->>>>>>> 368fa470ca14146e676e97b45922de2afefc75f5
                 a = '{0} \t\t {1} \t\t {2} \t\t {3} \n'.format(self.i, self.j, self.wboard, self.wch)
                 file.write(a)
                 self.chlist.append(Channel(self.i, self.j, self.wboard, self.wch, self.ip))
@@ -40,10 +33,7 @@ class TPC():
                     self.wboard+=1
                     self.wch=0
         file.close()
-<<<<<<< HEAD
         print "Before start, you have to Load Voltage from file through Load Voltage button "
-=======
->>>>>>> 368fa470ca14146e676e97b45922de2afefc75f5
 
     def getValue(self, cm):
             p = subprocess.Popen(cm.split(), stdout=subprocess.PIPE)
