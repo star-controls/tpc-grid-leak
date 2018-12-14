@@ -19,6 +19,7 @@ softioc.iocInit()
 # print tpc.chlist[10]
 
 tpc.do_startthread()
+tpc.readData.set(1)
 
 #start the ioc shell
 softioc.interactive_ioc(globals())

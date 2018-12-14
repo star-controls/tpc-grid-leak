@@ -1,5 +1,6 @@
 from softioc import builder, softioc
 import subprocess
+from epics import PV
 
 class Channel():
     def __init__(self, sect_num, chann_num, wboard, wch, ip):

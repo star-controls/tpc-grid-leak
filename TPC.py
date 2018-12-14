@@ -19,10 +19,17 @@ class TPC():
         self.wboard, self.wch = 0, 0
         self.ip = ip
         self.dictWiener, self.dictTPC = {}, {}
+<<<<<<< HEAD
+        file = open("file.txt","w")
+        file.write("TPC sector \t TPC channel \t WIENER board \t WIENER channel \n")
+        for self.i in xrange(1,25): # sector
+            for self.j in xrange(2): # channel
+=======
         file = open("file.txt","a")
         file.write("TPC sector \t TPC channel \t WIENER board \t WIENER channel \n")
         for self.i in xrange(1,25):
             for self.j in xrange(2):
+>>>>>>> 368fa470ca14146e676e97b45922de2afefc75f5
                 a = '{0} \t\t {1} \t\t {2} \t\t {3} \n'.format(self.i, self.j, self.wboard, self.wch)
                 file.write(a)
                 self.chlist.append(Channel(self.i, self.j, self.wboard, self.wch, self.ip))
@@ -33,6 +40,10 @@ class TPC():
                     self.wboard+=1
                     self.wch=0
         file.close()
+<<<<<<< HEAD
+        print "Before start, you have to Load Voltage from file through Load Voltage button "
+=======
+>>>>>>> 368fa470ca14146e676e97b45922de2afefc75f5
 
     def getValue(self, cm):
             p = subprocess.Popen(cm.split(), stdout=subprocess.PIPE)
@@ -83,19 +94,16 @@ class TPC():
                 self.dictWiener[ (eI[j], fI[j]) ].readTem.set(int( aT[j].split()[-1] ))
                 sumV = sumV + self.dictWiener[(eV[j], fV[j])].readVol.get()
                 sumT = sumT + self.dictWiener[(eV[j], fV[j])].readTem.get()
-                if '00 01' in a[j]:
-                    ll=0 
-                    #self.dictWiener[ (eI[j], fI[j]) ].status.set(0) # OFF
-                elif '80 11 80' in a[j]:
-                    ll=2
-                    #self.dictWiener[ (eI[j], fI[j]) ].status.set(2) # RAMP UP
-                elif '80 09 80' in a[j]:
-                    ll=3
-                    #self.dictWiener[ (eI[j], fI[j]) ].status.set(3) # RAMP DOWN
-                elif '80 01 80' in a[j]:
-                    ll=1
-                    #self.dictWiener[ (eI[j], fI[j]) ].status.set(1) # ON
-                #print eI[j], fI[j]
+                if('00 01' in a[j]):
+                    ll=0 # OFF
+                elif('80 11 80' in a[j]):
+                    ll=2 # RAMP UP
+                    if( self.dictWiener[ (eV[j], fV[j]) ].readVol.get() > self.dictWiener[ (eV[j], fV[j]) ].volt.get() ):
+                        ll=3
+                elif('80 09 80' in a[j]):
+                    ll=3 # RAMP DOWN
+                elif('80 01 80' in a[j]):
+                    ll=1 # ON
                 self.dictWiener[ (eI[j], fI[j]) ].status.set(ll)
             self.avrgVolt.set(sumV/len(eV))
             self.avrgTemp.set(sumT/len(eV))
@@ -113,7 +121,6 @@ class TPC():
             tpcch = f['tpcch'][line]
             voltage = f['voltage'][line]
             self.dictTPC[(sektor, tpcch)].volt.set(voltage)
-        print self.dictTPC
 
     def turnOn(self, val):
         self.marker.set(1)
