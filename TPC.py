@@ -14,6 +14,9 @@ class TPC():
         self.avrgVolt = builder.aIn('avrgVolt')
         self.avrgTemp = builder.longIn('avrgTemp')
         self.marker = builder.longIn('marker')
+        self.setVoltAllCh_pv = builder.aOut("setVoltAllCh", on_update=self.setVoltAllCh)
+        self.write_voltages_pv = builder.boolOut("write_voltages", on_update=self.write_voltages, HIGH=0.1)
+        self.datacsv = "data.csv"
 
         self.chlist = []
         self.wboard, self.wch = 0, 0
@@ -105,12 +108,22 @@ class TPC():
 
     def place_voltages(self, val):
         if val == 0: return
-        f = pd.read_csv('data.csv')
+        f = pd.read_csv(self.datacsv)
         for line in range(len(f)):
             sektor = f['sektor'][line]
             tpcch = f['tpcch'][line]
             voltage = f['voltage'][line]
             self.dictTPC[(sektor, tpcch)].volt.set(voltage)
+
+    def write_voltages(self, val):
+        if val == 0: return
+        f = pd.read_csv(self.datacsv)
+        for i in xrange(len(f)):
+            sec = f['sektor'][i]
+            ch = f['tpcch'][i]
+            volt = self.dictTPC[(sec, ch)].volt.get()
+            f['voltage'][i] = volt
+        f.to_csv(self.datacsv, index=False)
 
     def turnOn(self, val):
         self.marker.set(1)
@@ -123,3 +136,20 @@ class TPC():
         if val == 0: return
         for obj in self.chlist:
             obj.setOff.set(1)
+
+    def setVoltAllCh(self, val):
+        for ch in self.chlist:
+            ch.volt.set(val)
+
+
+
+
+
+
+
+
+
+
+
+
+

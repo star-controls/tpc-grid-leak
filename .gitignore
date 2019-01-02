@@ -1,3 +1,4 @@
 *.pyc 
-*~ 
-*py#
+Channel.pyc
+TPC.pyc
+file.txt
