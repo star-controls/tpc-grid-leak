@@ -14,7 +14,8 @@ class TPC():
         self.avrgVolt = builder.aIn('avrgVolt')
         self.avrgTemp = builder.longIn('avrgTemp')
         self.marker = builder.longIn('marker')
-        self.setVoltAllCh_pv = builder.aOut("setVoltAllCh", on_update=self.setVoltAllCh)
+        self.setVoltInner_pv = builder.aOut("setVoltInner", on_update=self.setVoltInner)
+        self.setVoltOuter_pv = builder.aOut("setVoltOuter", on_update=self.setVoltOuter)
         self.write_voltages_pv = builder.boolOut("write_voltages", on_update=self.write_voltages, HIGH=0.1)
         self.datacsv = "data.csv"
 
@@ -137,10 +138,15 @@ class TPC():
         for obj in self.chlist:
             obj.setOff.set(1)
 
-    def setVoltAllCh(self, val):
+    def setVoltInner(self, val):
         for ch in self.chlist:
+            if ch.chann_num != 0: continue
             ch.volt.set(val)
 
+    def setVoltOuter(self, val):
+        for ch in self.chlist:
+            if ch.chann_num != 1: continue
+            ch.volt.set(val)
 
 
 
