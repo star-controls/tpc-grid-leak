@@ -6,7 +6,7 @@ from softioc import softioc, builder
 
 #import the the application
 from TPC import TPC
-tpc = TPC('130.199.60.15')
+tpc = TPC('130.199.60.11')
 
 #run the ioc
 builder.LoadDatabase()

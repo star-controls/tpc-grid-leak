@@ -65,10 +65,10 @@ class TPC():
     def do_runreading(self):
         while True:
             time.sleep(2)
-            cmdV = "snmpwalk -v 2c -c starpublic 130.199.60.15 WIENER-CRATE-MIB::outputMeasurementSenseVoltage"
-            cmdI = "snmpwalk -v 2c -c starpublic 130.199.60.15 WIENER-CRATE-MIB::outputMeasurementCurrent"
-            cmdS = "snmpwalk -v 2c -c seCrET 130.199.60.15 WIENER-CRATE-MIB::outputStatus"
-            cmdT = "snmpwalk -v 2c -c seCrET 130.199.60.15 WIENER-CRATE-MIB::outputMeasurementTemperature"
+            cmdV = "snmpwalk -v 2c -c starpublic 130.199.60.11 WIENER-CRATE-MIB::outputMeasurementSenseVoltage"
+            cmdI = "snmpwalk -v 2c -c starpublic 130.199.60.11 WIENER-CRATE-MIB::outputMeasurementCurrent"
+            cmdS = "snmpwalk -v 2c -c seCrET 130.199.60.11 WIENER-CRATE-MIB::outputStatus"
+            cmdT = "snmpwalk -v 2c -c seCrET 130.199.60.11 WIENER-CRATE-MIB::outputMeasurementTemperature"
             try: 
                 eV, fV, gV = self.getValue(cmdV)
                 eI, fI, gI = self.getValue(cmdI)
