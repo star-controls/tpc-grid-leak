@@ -2,7 +2,7 @@ import time
 import pandas as pd
 import threading
 from Channel import Channel
-from softioc import builder, softioc
+from softioc import builder, softioc, alarm
 builder.SetDeviceName('tpc_grid_leak')
 import subprocess
 
@@ -69,8 +69,18 @@ class TPC():
             cmdI = "snmpwalk -v 2c -c starpublic 130.199.60.15 WIENER-CRATE-MIB::outputMeasurementCurrent"
             cmdS = "snmpwalk -v 2c -c seCrET 130.199.60.15 WIENER-CRATE-MIB::outputStatus"
             cmdT = "snmpwalk -v 2c -c seCrET 130.199.60.15 WIENER-CRATE-MIB::outputMeasurementTemperature"
-            eV, fV, gV = self.getValue(cmdV)
-            eI, fI, gI = self.getValue(cmdI)
+            try: 
+                eV, fV, gV = self.getValue(cmdV)
+                eI, fI, gI = self.getValue(cmdI)
+            except IndexError:
+                print "Wiener crate not responding"
+                self.set_invalid()
+                continue
+
+            if len(eV) == 0:
+                print "Empty response from Wiener crate"
+                self.set_invalid()
+                continue
 
             p = subprocess.Popen(cmdS.split(), stdout=subprocess.PIPE)
             out = p.communicate()
@@ -83,9 +93,15 @@ class TPC():
             sumV, sumT = 0, 0
             for j in range(len(eV)):
                 ll = 99
-                self.dictWiener[ (eV[j], fV[j]) ].readVol.set( gV[j]*(-1) )
-                self.dictWiener[ (eI[j], fI[j]) ].readCurr.set( gI[j] )
-                self.dictWiener[ (eI[j], fI[j]) ].readTem.set(int( aT[j].split()[-1] ))
+                try:
+                    self.dictWiener[ (eV[j], fV[j]) ].readVol.set( gV[j]*(-1) )
+                    self.dictWiener[ (eI[j], fI[j]) ].readCurr.set( gI[j] )
+                    self.dictWiener[ (eI[j], fI[j]) ].readTem.set(int( aT[j].split()[-1] ))
+                except:
+                    print "Invalid value from Wiener response"
+                    self.set_invalid()
+                    continue
+
                 sumV = sumV + self.dictWiener[(eV[j], fV[j])].readVol.get()
                 sumT = sumT + self.dictWiener[(eV[j], fV[j])].readTem.get()
                 if('00 01' in a[j]):
@@ -106,6 +122,17 @@ class TPC():
         t = threading.Thread(target=self.do_runreading)
         t.daemon = True
         t.start()
+
+    def set_invalid(self):
+        for ch in self.chlist:
+            ch.readVol.set_alarm(alarm.INVALID_ALARM, alarm=alarm.UDF_ALARM)
+            ch.readTem.set_alarm(alarm.INVALID_ALARM, alarm=alarm.UDF_ALARM)
+            ch.readCurr.set_alarm(alarm.INVALID_ALARM, alarm=alarm.UDF_ALARM)
+            ch.status.set_alarm(alarm.INVALID_ALARM, alarm=alarm.UDF_ALARM)
+
+        self.avrgVolt.set_alarm(alarm.INVALID_ALARM, alarm=alarm.UDF_ALARM)
+        self.avrgTemp.set_alarm(alarm.INVALID_ALARM, alarm=alarm.UDF_ALARM)
+        self.marker.set_alarm(alarm.INVALID_ALARM, alarm=alarm.UDF_ALARM)
 
     def place_voltages(self, val):
         if val == 0: return
