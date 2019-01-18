@@ -6,7 +6,9 @@ from softioc import softioc, builder
 
 #import the the application
 from TPC import TPC
+from SQLput import SQLput
 tpc = TPC('130.199.60.11')
+sql = SQLput(tpc.chlist)
 
 #run the ioc
 builder.LoadDatabase()

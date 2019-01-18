@@ -13,14 +13,38 @@ class Channel():
 
 # Features of the channels
         self.volt = builder.aOut(base_PV+'setVoltage', on_update=self.setVoltage)
+        self.curt = builder.aOut(base_PV+'setCurrent', on_update=self.setCurrent)
         self.wboardpv = builder.longIn(base_PV+'wboardpv', initial_value=self.wboard)
         self.wchpv = builder.longIn(base_PV+'wchpv', initial_value=self.wch)
         self.setOn = builder.boolOut(base_PV+'setOn', on_update=self.setOn, HIGH=0.1)
         self.setOff = builder.boolOut(base_PV+'setOff', on_update=self.setOff, HIGH=0.1)
         self.readVol = builder.aIn(base_PV+'readVol')
+        if(self.chann_num==0):
+            self.readVol.LOPR = 100
+            self.readVol.HOPR = 130
+            self.readVol.HIHI = 125
+            self.readVol.HIGH = 120
+            self.readVol.LOW  = 110
+            self.readVol.LOLO = 105
+            self.readVol.LSV = "MINOR"
+            self.readVol.LLSV = "MAJOR"
+            self.readVol.HSV = "MINOR"
+            self.readVol.HHSV = "MAJOR"
+        if(self.chann_num==1):
+            self.readVol.LOPR = 400
+            self.readVol.HOPR = 500
+            self.readVol.HIHI = 470
+            self.readVol.HIGH = 460
+            self.readVol.LOW  = 440
+            self.readVol.LOLO = 430
+            self.readVol.LSV = "MINOR"
+            self.readVol.LLSV = "MAJOR"
+            self.readVol.HSV = "MINOR"
+            self.readVol.HHSV = "MAJOR"
         self.readTem = builder.longIn(base_PV+'readTem')
         self.readCurr = builder.aIn(base_PV+'readCurr')
         self.status = builder.longIn(base_PV+'status')
+        self.setReset = builder.boolOut(base_PV+'setReset', on_update=self.setReset, HIGH=0.1)
 
         self.cmdtemplate = "snmpset -v 2c -c seCrET "+str(self.ip)+" WIENER-CRATE-MIB::"
         if(self.wboard==0):
@@ -33,8 +57,15 @@ class Channel():
 
     def setVoltage(self, val):
         print self.sect_num, self.chann_num, val
-        print '{0}outputVoltage.u{1} F {2:.1f}'.format(self.cmdtemplate, self.a, val)
         cmd = '{0}outputVoltage.u{1} F {2:.1f}'.format(self.cmdtemplate, self.a, val)
+        print cmd
+        p = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE)
+        out = p.communicate()
+
+    def setCurrent(self, val):
+        print self.sect_num, self.chann_num, val
+        cmd = '{0}outputCurrent.u{1} F {2:.6f}'.format(self.cmdtemplate, self.a, val*1e-6)
+        print cmd
         p = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE)
         out = p.communicate()
 
@@ -52,6 +83,12 @@ class Channel():
         p = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE)
         out = p.communicate()
 
+    def setReset(self, val):
+        if(val==0):return
+        cmd = '{0}outputSwitch.u{1} i 10'.format(self.cmdtemplate, self.a)
+        print cmd
+        p = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE)
+        out = p.communicate()
 
 # snmpset -v 2c -c seCrET 130.199.60.15 WIENER-CRATE-MIB::outputSwitch.u0 i 1
 # snmpset -v 2c -c seCrET 130.199.60.15 WIENER-CRATE-MIB::outputVoltage.u0 F 5.0

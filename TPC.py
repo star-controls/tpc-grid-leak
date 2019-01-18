@@ -13,11 +13,14 @@ class TPC():
         self.off = builder.boolOut('off', on_update=self.turnOff, HIGH=0.1)
         self.avrgVolt = builder.aIn('avrgVolt')
         self.avrgTemp = builder.longIn('avrgTemp')
+        self.avrgVoltInner = builder.aIn('avrgVoltInner')
+        self.avrgVoltOuter = builder.aIn('avrgVoltOuter')
         self.marker = builder.longIn('marker')
         self.setVoltInner_pv = builder.aOut("setVoltInner", on_update=self.setVoltInner)
         self.setVoltOuter_pv = builder.aOut("setVoltOuter", on_update=self.setVoltOuter)
         self.write_voltages_pv = builder.boolOut("write_voltages", on_update=self.write_voltages, HIGH=0.1)
         self.datacsv = "data.csv"
+        self.reset = builder.boolOut("reset", on_update=self.Reset, HIGH=0.1)
 
         self.chlist = []
         self.wboard, self.wch = 0, 0
@@ -91,11 +94,13 @@ class TPC():
             aT = outT[0].split('\n') 
 
             sumV, sumT = 0, 0
+            sumVi, sumVo = 0, 0
+            Ni, No = 0, 0
             for j in range(len(eV)):
                 ll = 99
                 try:
                     self.dictWiener[ (eV[j], fV[j]) ].readVol.set( gV[j]*(-1) )
-                    self.dictWiener[ (eI[j], fI[j]) ].readCurr.set( gI[j] )
+                    self.dictWiener[ (eI[j], fI[j]) ].readCurr.set( gI[j]*1e6 )
                     self.dictWiener[ (eI[j], fI[j]) ].readTem.set(int( aT[j].split()[-1] ))
                 except:
                     print "Invalid value from Wiener response"
@@ -114,8 +119,21 @@ class TPC():
                     ll=3 # RAMP DOWN
                 elif('80 01 80' in a[j]):
                     ll=1 # ON
+                elif('04 01' in a[j]):
+                    ll=4 # TRIP
                 self.dictWiener[ (eI[j], fI[j]) ].status.set(ll)
-            self.avrgVolt.set(sumV/len(eV))
+            
+            for ch in self.chlist:
+                if(ch.chann_num==0): 
+                    Ni+=1
+                    sumVi = sumVi + ch.readVol.get()
+                if(ch.chann_num==1):
+                    No+=1
+                    sumVo = sumVo + ch.readVol.get()
+
+            self.avrgVoltInner.set(sumVi/Ni)
+            self.avrgVoltOuter.set(sumVo/No)
+            self.avrgVolt.set(sumV/len(eV)) # total average volt = inner + outer
             self.avrgTemp.set(sumT/len(eV))
 
     def do_startthread(self):
@@ -141,7 +159,9 @@ class TPC():
             sektor = f['sektor'][line]
             tpcch = f['tpcch'][line]
             voltage = f['voltage'][line]
+            current = f['current'][line]
             self.dictTPC[(sektor, tpcch)].volt.set(voltage)
+            self.dictTPC[(sektor, tpcch)].curt.set(current)
 
     def write_voltages(self, val):
         if val == 0: return
@@ -150,7 +170,9 @@ class TPC():
             sec = f['sektor'][i]
             ch = f['tpcch'][i]
             volt = self.dictTPC[(sec, ch)].volt.get()
+            curr = self.dictTPC[(sec, ch)].curr.get()
             f['voltage'][i] = volt
+            f['current'][i] = curr
         f.to_csv(self.datacsv, index=False)
 
     def turnOn(self, val):
@@ -175,14 +197,9 @@ class TPC():
             if ch.chann_num != 1: continue
             ch.volt.set(val)
 
-
-
-
-
-
-
-
-
-
-
-
+    def Reset(self, val):
+        if(val==0):return
+        for obj in self.chlist:
+            if(obj.status.get()==4):
+                print "RESET: sector {0}, channel{1}".format(obj.sect_num, obj.chann_num)
+                obj.setReset.set(1)

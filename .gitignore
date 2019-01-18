@@ -1,4 +1,5 @@
 *.pyc 
 Channel.pyc
 TPC.pyc
-file.txt
+SQLput.py~
+SQLput.pyc
