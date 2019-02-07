@@ -26,13 +26,19 @@ class TPC():
         self.wboard, self.wch = 0, 0
         self.ip = ip
         self.dictWiener, self.dictTPC = {}, {}
+
+        #snmp 5.8 for user defined precision in current readings, compiled according to
+        # http://file.wiener-d.com/software/net-snmp/net-snmp-CompileForExtendedPrecision-2015-03-06.txt
+        self.snmpwalk = "/usr/local/Net-SNMP_5-8/code/apps/snmpwalk"
+        self.snmpset = "/usr/local/Net-SNMP_5-8/code/apps/snmpset -v 2c -c seCrET "+self.ip+" WIENER-CRATE-MIB::"
+
         file = open("file.txt","w")
         file.write("TPC sector \t TPC channel \t WIENER board \t WIENER channel \n")
         for self.i in xrange(1,25): # sector
             for self.j in xrange(2): # channel
                 a = '{0} \t\t {1} \t\t {2} \t\t {3} \n'.format(self.i, self.j, self.wboard, self.wch)
                 file.write(a)
-                self.chlist.append(Channel(self.i, self.j, self.wboard, self.wch, self.ip))
+                self.chlist.append(Channel(self.i, self.j, self.wboard, self.wch, self.snmpset))
                 self.dictWiener[(self.wboard, self.wch)] = self.chlist[-1]
                 self.dictTPC[(self.i, self.j)] = self.chlist[-1]
                 self.wch+=1
@@ -67,11 +73,12 @@ class TPC():
 
     def do_runreading(self):
         while True:
-            time.sleep(2)
-            cmdV = "snmpwalk -v 2c -c starpublic 130.199.60.11 WIENER-CRATE-MIB::outputMeasurementSenseVoltage"
-            cmdI = "snmpwalk -v 2c -c starpublic 130.199.60.11 WIENER-CRATE-MIB::outputMeasurementCurrent"
-            cmdS = "snmpwalk -v 2c -c seCrET 130.199.60.11 WIENER-CRATE-MIB::outputStatus"
-            cmdT = "snmpwalk -v 2c -c seCrET 130.199.60.11 WIENER-CRATE-MIB::outputMeasurementTemperature"
+            time.sleep(1) # default was 2 sec
+            cmd_base = self.snmpwalk + " -v 2c -c starpublic " + self.ip + " WIENER-CRATE-MIB::"
+            cmdV = cmd_base + "outputMeasurementSenseVoltage"
+            cmdI = cmd_base + "outputMeasurementCurrent -Op .9"
+            cmdS = cmd_base + "outputStatus"
+            cmdT = cmd_base + "outputMeasurementTemperature"
             try: 
                 eV, fV, gV = self.getValue(cmdV)
                 eI, fI, gI = self.getValue(cmdI)
@@ -111,18 +118,23 @@ class TPC():
                 sumT = sumT + self.dictWiener[(eV[j], fV[j])].readTem.get()
                 if('00 01' in a[j]):
                     ll=0 # OFF
-                elif('80 11 80' in a[j]):
+                #if('80 11 80' in a[j] or '80 01' in a[j] or '80 11' in a[j] or '80 21' in a[j]):
+                if('80 11 80' in a[j] or '80 21' in a[j] or '80 01 outputOn(0)' in a[j]):
+                #if('80 11 80' in a[j]):
                     ll=2 # RAMP UP
                     if( self.dictWiener[ (eV[j], fV[j]) ].readVol.get() > self.dictWiener[ (eV[j], fV[j]) ].volt.get() ):
                         ll=3
-                elif('80 09 80' in a[j]):
+                if('80 09 80' in a[j]):
                     ll=3 # RAMP DOWN
-                elif('80 01 80' in a[j]):
+                if('80 01 80' in a[j]):
                     ll=1 # ON
-                elif('04 01' in a[j]):
+                if('04 01' in a[j]):
                     ll=4 # TRIP
                 self.dictWiener[ (eI[j], fI[j]) ].status.set(ll)
-            
+                #report unrecognized status to ioc shell
+                if ll > 10:
+                    print "Unrecognized channel status:", ll, j, a[j]
+
             for ch in self.chlist:
                 if(ch.chann_num==0): 
                     Ni+=1

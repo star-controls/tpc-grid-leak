@@ -3,22 +3,23 @@ import subprocess
 from epics import PV
 
 class Channel():
-    def __init__(self, sect_num, chann_num, wboard, wch, ip):
+    def __init__(self, sect_num, chann_num, wboard, wch, snmpset):
         self.sect_num = sect_num
         self.chann_num = chann_num
         self.wboard = wboard
         self.wch = wch
-        self.ip = ip
+        #self.ip = ip
+        self.cmdtemplate = snmpset
         base_PV = '{0:02d}:{1:d}:'.format(self.sect_num,self.chann_num)
 
-# Features of the channels
+        # Features of the channels
         self.volt = builder.aOut(base_PV+'setVoltage', on_update=self.setVoltage)
         self.curt = builder.aOut(base_PV+'setCurrent', on_update=self.setCurrent)
         self.wboardpv = builder.longIn(base_PV+'wboardpv', initial_value=self.wboard)
         self.wchpv = builder.longIn(base_PV+'wchpv', initial_value=self.wch)
         self.setOn = builder.boolOut(base_PV+'setOn', on_update=self.setOn, HIGH=0.1)
         self.setOff = builder.boolOut(base_PV+'setOff', on_update=self.setOff, HIGH=0.1)
-        self.readVol = builder.aIn(base_PV+'readVol')
+        self.readVol = builder.aIn(base_PV+'readVol', PREC=3)
         if(self.chann_num==0):
             self.readVol.LOPR = 100
             self.readVol.HOPR = 130
@@ -42,11 +43,11 @@ class Channel():
             self.readVol.HSV = "MINOR"
             self.readVol.HHSV = "MAJOR"
         self.readTem = builder.longIn(base_PV+'readTem')
-        self.readCurr = builder.aIn(base_PV+'readCurr')
+        self.readCurr = builder.aIn(base_PV+'readCurr', PREC=3)
         self.status = builder.longIn(base_PV+'status')
         self.setReset = builder.boolOut(base_PV+'setReset', on_update=self.setReset, HIGH=0.1)
 
-        self.cmdtemplate = "snmpset -v 2c -c seCrET "+str(self.ip)+" WIENER-CRATE-MIB::"
+        #self.cmdtemplate = "snmpset -v 2c -c seCrET "+str(self.ip)+" WIENER-CRATE-MIB::"
         if(self.wboard==0):
             self.a = str(self.wch)
         else:
@@ -90,5 +91,4 @@ class Channel():
         p = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE)
         out = p.communicate()
 
-# snmpset -v 2c -c seCrET 130.199.60.15 WIENER-CRATE-MIB::outputSwitch.u0 i 1
-# snmpset -v 2c -c seCrET 130.199.60.15 WIENER-CRATE-MIB::outputVoltage.u0 F 5.0
+
