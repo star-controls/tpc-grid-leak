@@ -8,7 +8,6 @@ class Channel():
         self.chann_num = chann_num
         self.wboard = wboard
         self.wch = wch
-        #self.ip = ip
         self.cmdtemplate = snmpset
         base_PV = '{0:02d}:{1:d}:'.format(self.sect_num,self.chann_num)
 
@@ -19,7 +18,7 @@ class Channel():
         self.wchpv = builder.longIn(base_PV+'wchpv', initial_value=self.wch)
         self.setOn = builder.boolOut(base_PV+'setOn', on_update=self.setOn, HIGH=0.1)
         self.setOff = builder.boolOut(base_PV+'setOff', on_update=self.setOff, HIGH=0.1)
-        self.readVol = builder.aIn(base_PV+'readVol', PREC=3)
+        self.readVol = builder.aIn(base_PV+'readVol', PREC=1)
         if(self.chann_num==0):
             self.readVol.LOPR = 100
             self.readVol.HOPR = 130
@@ -43,11 +42,12 @@ class Channel():
             self.readVol.HSV = "MINOR"
             self.readVol.HHSV = "MAJOR"
         self.readTem = builder.longIn(base_PV+'readTem')
-        self.readCurr = builder.aIn(base_PV+'readCurr', PREC=3)
+        self.imon_read = 0. # measured current from ISEG
+        self.imon_adj = 0. # adjustment to the measured current
+        self.readCurr = builder.aIn(base_PV+'readCurr', PREC=2)
         self.status = builder.longIn(base_PV+'status')
         self.setReset = builder.boolOut(base_PV+'setReset', on_update=self.setReset, HIGH=0.1)
 
-        #self.cmdtemplate = "snmpset -v 2c -c seCrET "+str(self.ip)+" WIENER-CRATE-MIB::"
         if(self.wboard==0):
             self.a = str(self.wch)
         else:
@@ -55,6 +55,12 @@ class Channel():
                 self.a = str(self.wboard)+str(self.wch)
             else:
                 self.a = str(self.wboard)+'0'+str(self.wch)
+
+    def adjust_measured_current(self):
+        self.imon_adj = -1.*self.imon_read
+
+    def put_measured_current(self):
+        self.readCurr.set( self.imon_read + self.imon_adj )
 
     def setVoltage(self, val):
         print self.sect_num, self.chann_num, val

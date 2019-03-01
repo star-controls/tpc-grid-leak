@@ -21,6 +21,8 @@ class TPC():
         self.write_voltages_pv = builder.boolOut("write_voltages", on_update=self.write_voltages, HIGH=0.1)
         self.datacsv = "data.csv"
         self.reset = builder.boolOut("reset", on_update=self.Reset, HIGH=0.1)
+        self.adj_current_pv = builder.boolOut("adj_current", on_update=self.adj_current, HIGH=0.1)
+        self.adj_current_csv = "adj_current.csv"
 
         self.chlist = []
         self.wboard, self.wch = 0, 0
@@ -76,7 +78,7 @@ class TPC():
             time.sleep(1) # default was 2 sec
             cmd_base = self.snmpwalk + " -v 2c -c starpublic " + self.ip + " WIENER-CRATE-MIB::"
             cmdV = cmd_base + "outputMeasurementSenseVoltage"
-            cmdI = cmd_base + "outputMeasurementCurrent -Op .9"
+            cmdI = cmd_base + "outputMeasurementCurrent -Op .8"
             cmdS = cmd_base + "outputStatus"
             cmdT = cmd_base + "outputMeasurementTemperature"
             try: 
@@ -107,7 +109,9 @@ class TPC():
                 ll = 99
                 try:
                     self.dictWiener[ (eV[j], fV[j]) ].readVol.set( gV[j]*(-1) )
-                    self.dictWiener[ (eI[j], fI[j]) ].readCurr.set( gI[j]*1e6 )
+                    wch = self.dictWiener[ (eI[j], fI[j]) ]
+                    wch.imon_read = gI[j]*1e6
+                    wch.put_measured_current()
                     self.dictWiener[ (eI[j], fI[j]) ].readTem.set(int( aT[j].split()[-1] ))
                 except:
                     print "Invalid value from Wiener response"
@@ -215,3 +219,10 @@ class TPC():
             if(obj.status.get()==4):
                 print "RESET: sector {0}, channel{1}".format(obj.sect_num, obj.chann_num)
                 obj.setReset.set(1)
+
+    def adj_current(self, val):
+        if val == 0: return
+        for ch in self.chlist:
+            ch.adjust_measured_current()
+
+
