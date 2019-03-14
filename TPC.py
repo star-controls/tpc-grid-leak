@@ -1,6 +1,8 @@
 import time
 import pandas as pd
 import threading
+from datetime import datetime
+
 from Channel import Channel
 from softioc import builder, softioc, alarm
 builder.SetDeviceName('tpc_grid_leak')
@@ -22,7 +24,8 @@ class TPC():
         self.datacsv = "data.csv"
         self.reset = builder.boolOut("reset", on_update=self.Reset, HIGH=0.1)
         self.adj_current_pv = builder.boolOut("adj_current", on_update=self.adj_current, HIGH=0.1)
-        self.adj_current_csv = "adj_current.csv"
+        self.adj_msg = "Last done: "
+        self.adj_stat_pv = builder.stringIn("adj_stat", initial_value=self.adj_msg+"none")
 
         self.chlist = []
         self.wboard, self.wch = 0, 0
@@ -78,7 +81,7 @@ class TPC():
             time.sleep(1) # default was 2 sec
             cmd_base = self.snmpwalk + " -v 2c -c starpublic " + self.ip + " WIENER-CRATE-MIB::"
             cmdV = cmd_base + "outputMeasurementSenseVoltage"
-            cmdI = cmd_base + "outputMeasurementCurrent -Op .8"
+            cmdI = cmd_base + "outputMeasurementCurrent -Op .9"
             cmdS = cmd_base + "outputStatus"
             cmdT = cmd_base + "outputMeasurementTemperature"
             try: 
@@ -109,9 +112,7 @@ class TPC():
                 ll = 99
                 try:
                     self.dictWiener[ (eV[j], fV[j]) ].readVol.set( gV[j]*(-1) )
-                    wch = self.dictWiener[ (eI[j], fI[j]) ]
-                    wch.imon_read = gI[j]*1e6
-                    wch.put_measured_current()
+                    self.dictWiener[ (eI[j], fI[j]) ].put_measured_current( gI[j]*1e6 )
                     self.dictWiener[ (eI[j], fI[j]) ].readTem.set(int( aT[j].split()[-1] ))
                 except:
                     print "Invalid value from Wiener response"
@@ -222,7 +223,12 @@ class TPC():
 
     def adj_current(self, val):
         if val == 0: return
+        self.adj_stat_pv.set("Wait calib in progress")
         for ch in self.chlist:
             ch.adjust_measured_current()
+
+        self.adj_stat_pv.set(self.adj_msg + datetime.now().strftime("%Y-%m-%d %H:%M"))
+
+
 
 

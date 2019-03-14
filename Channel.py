@@ -44,7 +44,7 @@ class Channel():
         self.readTem = builder.longIn(base_PV+'readTem')
         self.imon_read = 0. # measured current from ISEG
         self.imon_adj = 0. # adjustment to the measured current
-        self.readCurr = builder.aIn(base_PV+'readCurr', PREC=2)
+        self.readCurr = builder.aIn(base_PV+'readCurr', PREC=3)
         self.status = builder.longIn(base_PV+'status')
         self.setReset = builder.boolOut(base_PV+'setReset', on_update=self.setReset, HIGH=0.1)
 
@@ -59,7 +59,8 @@ class Channel():
     def adjust_measured_current(self):
         self.imon_adj = -1.*self.imon_read
 
-    def put_measured_current(self):
+    def put_measured_current(self, imon):
+        self.imon_read = imon
         self.readCurr.set( self.imon_read + self.imon_adj )
 
     def setVoltage(self, val):
